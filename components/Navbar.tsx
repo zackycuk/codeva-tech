@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Cpu, Menu, X, ShoppingBag } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -20,11 +20,13 @@ export default function Navbar() {
   // Jangan tampilkan Navbar di halaman Login atau Dashboard Admin
   if (pathname.startsWith("/dashboard") || pathname === "/login") return null;
 
+  // 👇 DITAMBAHKAN DISINI: "Cek Servis" 👇
   const navLinks = [
     { name: "Home", href: "/" },
     { name: "Katalog", href: "/shop" },
     { name: "Laptop Finder", href: "/finder" },
-    { name: "Service", href: "/#services" }, // Anchor link ke section service di Home
+    { name: "Cek Servis", href: "/track" }, // <--- INI BARU
+    { name: "Service Info", href: "/#services" }, 
   ];
 
   return (
@@ -33,14 +35,13 @@ export default function Navbar() {
         <div className="container mx-auto px-4 flex justify-between items-center">
           
           {/* LOGO */}
-          {/* LOGO (Minimalis Tanpa Ikon) */}
           <Link href="/" className="flex items-center group">
             <span className="text-2xl font-bold text-white tracking-wide transition-colors group-hover:text-primary">
               CodevaTech
             </span>
           </Link>
 
-          {/* DESKTOP MENU */}
+          {/* DESKTOP MENU (Otomatis Rapi) */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link 
@@ -83,7 +84,7 @@ export default function Navbar() {
                 key={link.name} 
                 href={link.href} 
                 onClick={() => setIsOpen(false)}
-                className="text-2xl font-bold text-white hover:text-primary"
+                className={`text-2xl font-bold hover:text-primary ${pathname === link.href ? "text-primary" : "text-white"}`}
               >
                 {link.name}
               </Link>
