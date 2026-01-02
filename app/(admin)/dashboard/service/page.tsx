@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, Wrench, Save, X, Search, Trash2, Edit, MapPin, Phone, Loader2 } from "lucide-react";
+import { Plus, Wrench, Save, X, Search, Trash2, Edit, MapPin, Phone, Loader2, Printer } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link"; // Import Link buat tombol print
 
 export default function ServicePage() {
   const [services, setServices] = useState<any[]>([]);
@@ -13,18 +14,18 @@ export default function ServicePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // FORM DATA (Lengkap dengan Address)
+  // FORM DATA
   const [formData, setFormData] = useState({
     customer_name: "",
     device_name: "",
     issue: "",
     phone: "",
-    address: "", // <-- KOLOM BARU
+    address: "",
     price: "0",
     status: "Pending"
   });
 
-  // --- 1. AMBIL DATA (READ) ---
+  // --- 1. AMBIL DATA ---
   const fetchServices = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -40,7 +41,7 @@ export default function ServicePage() {
 
   useEffect(() => { fetchServices(); }, []);
 
-  // --- 2. TAMBAH DATA (CREATE) ---
+  // --- 2. TAMBAH DATA ---
   const handleSaveService = async () => {
     if (!formData.customer_name || !formData.device_name) {
         alert("Nama Pelanggan & Barang wajib diisi!");
@@ -48,29 +49,27 @@ export default function ServicePage() {
     }
     setIsSaving(true);
 
-    // Kirim data ke Supabase (termasuk alamat)
     const { error } = await supabase.from('services').insert([{
         customer_name: formData.customer_name,
         device_name: formData.device_name,
         issue: formData.issue,
         phone: formData.phone,
-        address: formData.address, // <-- SIMPAN ALAMAT
+        address: formData.address,
         price: parseInt(formData.price),
         status: "Pending"
     }]);
 
     if (!error) {
         setIsModalOpen(false);
-        // Reset form jadi kosong lagi
         setFormData({ customer_name: "", device_name: "", issue: "", phone: "", address: "", price: "0", status: "Pending" });
-        fetchServices(); // Refresh data
+        fetchServices();
     } else {
         alert("Gagal simpan: " + error.message);
     }
     setIsSaving(false);
   };
 
-  // --- 3. UBAH STATUS & HARGA ---
+  // --- 3. UPDATE & DELETE ---
   const updateStatus = async (id: number, newStatus: string) => {
     await supabase.from('services').update({ status: newStatus }).eq('id', id);
     fetchServices();
@@ -84,7 +83,6 @@ export default function ServicePage() {
     }
   };
 
-  // --- 4. HAPUS DATA ---
   const handleDelete = async (id: number) => {
     if (confirm("Yakin mau hapus data servis ini?")) {
         await supabase.from('services').delete().eq('id', id);
@@ -92,7 +90,7 @@ export default function ServicePage() {
     }
   };
 
-  // Filter Pencarian & Warna Status
+  // Filter & Warna
   const filteredServices = services.filter(s => 
     s.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.device_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -110,7 +108,6 @@ export default function ServicePage() {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-2">
@@ -124,7 +121,6 @@ export default function ServicePage() {
         </button>
       </div>
 
-      {/* SEARCH BAR */}
       <div className="bg-surface p-4 rounded-xl border border-white/10 relative">
         <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
         <input 
@@ -135,7 +131,6 @@ export default function ServicePage() {
         />
       </div>
 
-      {/* DAFTAR SERVIS */}
       <div className="grid grid-cols-1 gap-4">
         {loading ? <div className="text-center py-10 text-gray-500 animate-pulse">Memuat data servis...</div> : 
          filteredServices.map((item) => (
@@ -146,14 +141,11 @@ export default function ServicePage() {
                 className="bg-surface border border-white/10 rounded-xl p-5 hover:border-primary/30 transition-all group"
             >
                 <div className="flex flex-col md:flex-row justify-between gap-4">
-                    {/* INFO UTAMA (KIRI) */}
                     <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
                             <h3 className="text-lg font-bold text-white">{item.customer_name}</h3>
                             <span className="text-xs text-gray-500 font-mono bg-black/30 px-2 py-0.5 rounded">#{item.id}</span>
                         </div>
-                        
-                        {/* Info Kontak & Alamat (Disini Munculnya) */}
                         <div className="text-sm text-gray-400 flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                                 <Phone className="w-3 h-3 text-primary" /> {item.phone || "-"}
@@ -165,19 +157,14 @@ export default function ServicePage() {
                                 </div>
                             )}
                         </div>
-
                         <div className="h-px bg-white/5 my-2 w-full"></div>
-
                         <div className="text-primary font-medium flex items-center gap-2">
                             <Wrench className="w-4 h-4" /> {item.device_name}
                         </div>
                         <p className="text-sm text-gray-400">Keluhan: <span className="text-white italic">"{item.issue}"</span></p>
                     </div>
 
-                    {/* STATUS & AKSI (KANAN) */}
                     <div className="flex flex-col items-start md:items-end gap-3 min-w-[200px]">
-                        
-                        {/* Dropdown Status */}
                         <select 
                             value={item.status}
                             onChange={(e) => updateStatus(item.id, e.target.value)}
@@ -190,18 +177,25 @@ export default function ServicePage() {
                             <option value="Cancel">Batal</option>
                         </select>
 
-                        {/* Edit Harga */}
                         <div onClick={() => updatePrice(item.id, item.price)} className="text-xl font-bold font-mono text-white cursor-pointer hover:text-primary flex items-center gap-2">
                            Rp {item.price.toLocaleString("id-ID")}
                            <Edit className="w-3 h-3 opacity-50" />
                         </div>
 
-                        {/* Tombol WA & Hapus */}
+                        {/* TOMBOL AKSI LENGKAP */}
                         <div className="flex items-center gap-2 mt-auto">
-                            <button onClick={() => window.open(`https://wa.me/${item.phone}?text=Halo ${item.customer_name}, update status servis ${item.device_name}: ${item.status}`, '_blank')} className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500 hover:text-black transition">
+                             {/* Tombol Print */}
+                             <Link href={`/dashboard/service/print/${item.id}`} target="_blank" className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition" title="Cetak Nota">
+                                <Printer className="w-4 h-4" />
+                            </Link>
+
+                            {/* Tombol WA */}
+                            <button onClick={() => window.open(`https://wa.me/${item.phone}?text=Halo ${item.customer_name}, update status servis ${item.device_name}: ${item.status}`, '_blank')} className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500 hover:text-black transition" title="Chat WA">
                                 <span className="text-xs font-bold">WA</span>
                             </button>
-                            <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition">
+                            
+                            {/* Tombol Hapus */}
+                            <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition" title="Hapus Data">
                                 <Trash2 className="w-4 h-4" />
                             </button>
                         </div>
@@ -209,15 +203,8 @@ export default function ServicePage() {
                 </div>
             </motion.div>
         ))}
-        
-        {!loading && services.length === 0 && (
-             <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl">
-                <p className="text-gray-500">Belum ada data servis.</p>
-            </div>
-        )}
       </div>
 
-      {/* --- MODAL FORM INPUT (Lengkap dengan Alamat) --- */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -226,7 +213,6 @@ export default function ServicePage() {
                 <h2 className="text-xl font-bold text-white">Input Servis Baru</h2>
                 <button onClick={() => setIsModalOpen(false)}><X className="text-gray-400 hover:text-white"/></button>
               </div>
-              
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -240,37 +226,31 @@ export default function ServicePage() {
                             value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                     </div>
                 </div>
-
-                {/* INPUT ALAMAT */}
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Alamat Lengkap</label>
-                    <textarea className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary h-20 resize-none" placeholder="Jalan, No. Rumah, Kota..."
+                    <textarea className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary h-20 resize-none" placeholder="Alamat..."
                         value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}></textarea>
                 </div>
-                
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Unit / Device</label>
-                    <input type="text" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary" placeholder="Contoh: Macbook Air M1"
+                    <input type="text" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary" placeholder="Device..."
                         value={formData.device_name} onChange={e => setFormData({...formData, device_name: e.target.value})} />
                 </div>
-
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Keluhan / Kerusakan</label>
-                    <textarea className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary h-24 resize-none" placeholder="Detail kerusakan..."
+                    <textarea className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary h-24 resize-none" placeholder="Kerusakan..."
                         value={formData.issue} onChange={e => setFormData({...formData, issue: e.target.value})}></textarea>
                 </div>
-
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Estimasi Biaya (Rp)</label>
                     <input type="number" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary"
                         value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
                 </div>
               </div>
-
               <div className="p-6 border-t border-white/10 flex justify-end gap-3 bg-white/5">
                 <button onClick={() => setIsModalOpen(false)} className="px-5 py-2 rounded-xl text-gray-400 hover:text-white">Batal</button>
                 <button onClick={handleSaveService} disabled={isSaving} className="px-6 py-2 bg-primary text-black font-bold rounded-xl hover:bg-primary-glow flex items-center gap-2">
-                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>} Simpan
+                    <Save className="w-4 h-4"/> Simpan
                 </button>
               </div>
             </motion.div>
