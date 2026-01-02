@@ -19,30 +19,33 @@ export default function LoginPage() {
   }, [router]);
 
   const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault(); // Wajib biar gak reload
+    e.preventDefault();
     setError("");
     setLoading(true);
 
-    // --- 🔐 LOGIKA RAHASIA (SATPAM) ---
-    // Di sini kita set username & password manual dulu biar aman & cepat.
-    // Nanti kalau mau canggih bisa connect ke Supabase Auth.
-    
-    const EMAIL_RAHASIA = "admin@jaki";
+    const EMAIL_RAHASIA = "admin@codeva.tech";
     const PASSWORD_RAHASIA = "admin123";
+
+    // --- PASANG CCTV DISINI ---
+    console.log("--- DEBUGGING LOGIN ---");
+    console.log("Yang Kamu Ketik Email:", email);
+    console.log("Yang Kamu Ketik Pass :", password);
+    console.log("Kunci Seharusnya Email:", EMAIL_RAHASIA);
+    console.log("Kunci Seharusnya Pass :", PASSWORD_RAHASIA);
+    console.log("Apakah Email Cocok? :", email === EMAIL_RAHASIA);
+    console.log("Apakah Pass Cocok?  :", password === PASSWORD_RAHASIA);
+    console.log("-----------------------");
 
     // Cek Kecocokan
     if (email === EMAIL_RAHASIA && password === PASSWORD_RAHASIA) {
-        // ✅ BERHASIL
-        // Kita kasih "Stempel" di browser biar bisa akses halaman lain
+        console.log("HASIL: SUKSES MASUK ✅");
         localStorage.setItem("codeva_admin_session", "true");
-        
-        // Kasih jeda dikit biar ada efek loading keren
         setTimeout(() => {
             router.push("/dashboard"); 
         }, 1000);
     } else {
-        // ❌ GAGAL
-        setError("Email atau Password salah! Jangan ngasal ya.");
+        console.log("HASIL: DITOLAK ❌");
+        setError("Email atau Password salah! (Cek Console F12)");
         setLoading(false);
     }
   };
@@ -111,6 +114,9 @@ export default function LoginPage() {
                 Lupa password? Hubungi Developer (Zacky).
             </p>
         </div>
+        <p className="text-center text-xs text-yellow-500 mt-4 font-mono">
+      VERSI DEBUGGING: V1.0
+  </p>
       </div>
     </main>
   );
