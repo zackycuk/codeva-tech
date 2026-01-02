@@ -1,174 +1,211 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { motion } from "framer-motion";
-import { Search, Laptop, DollarSign, Briefcase, Gamepad2, PenTool, Frown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Laptop, DollarSign, Briefcase, Gamepad2, PenTool, Code, ArrowRight, RefreshCcw, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function FinderPage() {
-  // State untuk Input User
   const [step, setStep] = useState(1);
-  const [budget, setBudget] = useState(15000000); // Default 15 Juta
-  const [usage, setUsage] = useState("");
-  
-  // State untuk Hasil
+  const [usage, setUsage] = useState(""); // office, gaming, design, coding
+  const [budget, setBudget] = useState(10000000); // Default 10 Juta
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
 
-  // LOGIKA PENCARIAN
-  const handleSearch = async () => {
+  // Opsi Kebutuhan
+  const usages = [
+    { id: "office", label: "Kuliah / Ngetik", icon: Briefcase, desc: "Ringan, baterai awet, Microsoft Office." },
+    { id: "design", label: "Desain & Editing", icon: PenTool, desc: "Layar akurat, kuat render video ringan." },
+    { id: "gaming", label: "Gaming Berat", icon: Gamepad2, desc: "Performa maksimal, pendingin bagus." },
+    { id: "coding", label: "Programming", icon: Code, desc: "RAM besar, multitasking lancar." },
+  ];
+
+  // --- LOGIKA PENCARI "DETEKTIF" ---
+  const findLaptops = async () => {
     setLoading(true);
-    setStep(3); 
-
-    // Simulasi mikir "AI"
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Query ke Supabase
-    const { data, error } = await supabase
+    
+    // 1. Ambil SEMUA produk laptop
+    const { data: allLaptops } = await supabase
       .from('products')
       .select('*')
-      .eq('category', 'Laptop')
-      .lte('price', budget) // Harga <= Budget
-      .gt('stock', 0)       
-      .order('price', { ascending: false }) 
-      .limit(3);            
+      .eq('category', 'Laptop') // Pastikan cuma ambil laptop
+      .gt('stock', 0); // Yang ready aja
 
-    if (!error) {
-      setResults(data || []);
+    if (!allLaptops) {
+        setResults([]);
+        setLoading(false);
+        setStep(3);
+        return;
     }
-    setHasSearched(true);
-    setLoading(false);
+
+    // 2. FILTER PINTAR (Di sini otaknya!)
+    const filtered = allLaptops.filter((laptop) => {
+        const price = laptop.price;
+        const name = laptop.name.toLowerCase();
+
+        // Syarat 1: Masuk Budget User?
+        // (Kita kasih toleransi lebih mahal dikit 10% buat rekomendasi)
+        if (price > budget * 1.1) return false; 
+
+        // Syarat 2: Cocok sama Usage?
+        if (usage === 'office') {
+            // Office ga butuh yang mahal-mahal banget, prioritas harga murah
+            return true; 
+        }
+        
+        if (usage === 'gaming' || usage === 'design') {
+            // Harus mahal (indikasi spek tinggi) ATAU punya nama gaming
+            const isGamingLaptop = name.includes("tuf") || name.includes("rog") || name.includes("legion") || name.includes("nitro") || name.includes("rtx") || name.includes("gtx") || name.includes("gaming");
+            const isExpensive = price > 7000000; // Asumsi di atas 7jt udah lumayan
+            return isGamingLaptop || isExpensive;
+        }
+
+        if (usage === 'coding') {
+            // Coding butuh yang mid-range, jangan yang terlalu kentang
+            return price > 4000000; 
+        }
+
+        return true;
+    });
+
+    // Urutkan: Yang mendekati budget user ditaruh paling atas
+    filtered.sort((a, b) => b.price - a.price);
+
+    setResults(filtered);
+    setTimeout(() => {
+        setLoading(false);
+        setStep(3);
+    }, 1000); // Gimmick loading biar berasa mikir
+  };
+
+  const resetFinder = () => {
+    setStep(1);
+    setUsage("");
+    setResults([]);
   };
 
   return (
-    <main className="min-h-screen pt-24 pb-12 bg-black text-white overflow-hidden relative">
-      
-      {/* Background Decor */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-
-      <div className="container mx-auto px-4 relative z-10 max-w-4xl">
+    <main className="min-h-screen bg-black text-white pt-24 pb-12">
+      <div className="container mx-auto px-4 max-w-4xl">
         
-        {/* HEADER */}
+        {/* Header */}
         <div className="text-center mb-12">
-            <span className="px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider mb-4 inline-block">
-                Smart Recommendation System
-            </span>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Cari Laptop Ideal Anda</h1>
-            <p className="text-gray-400">Jawab 2 pertanyaan simpel, algoritma kami akan mencarikan stok terbaik untuk Anda.</p>
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">Laptop Finder AI</h1>
+            <p className="text-gray-400">Jawab 2 pertanyaan, kami carikan jodoh laptop untukmu.</p>
         </div>
 
-        {/* --- STEP 1: PILIH PENGGUNAAN --- */}
+        {/* --- STEP 1: PILIH KEBUTUHAN --- */}
         {step === 1 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-surface border border-white/10 rounded-2xl p-8">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Laptop className="text-primary"/> Untuk apa laptop digunakan?</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <UsageCard icon={Briefcase} label="Kerja / Kuliah" desc="Office, Zoom, Browsing" onClick={() => { setUsage("Work"); setStep(2); }} />
-                <UsageCard icon={Gamepad2} label="Gaming Berat" desc="AAA Games, Streaming" onClick={() => { setUsage("Gaming"); setStep(2); }} />
-                <UsageCard icon={PenTool} label="Desain / Editing" desc="Adobe, Blender, Coding" onClick={() => { setUsage("Design"); setStep(2); }} />
-            </div>
-          </motion.div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                <h2 className="text-xl font-bold text-center">Mau dipakai buat apa?</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {usages.map((item) => (
+                        <button 
+                            key={item.id}
+                            onClick={() => { setUsage(item.id); setStep(2); }}
+                            className="flex items-center gap-4 p-6 rounded-2xl border border-white/10 bg-surface hover:border-primary hover:bg-white/5 transition-all group text-left"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                <item.icon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <div className="font-bold text-lg text-white group-hover:text-primary transition-colors">{item.label}</div>
+                                <div className="text-sm text-gray-400">{item.desc}</div>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </motion.div>
         )}
 
-        {/* --- STEP 2: TENTUKAN BUDGET --- */}
+        {/* --- STEP 2: BUDGET --- */}
         {step === 2 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-surface border border-white/10 rounded-2xl p-8 text-center">
-            <h2 className="text-xl font-bold mb-8 flex items-center justify-center gap-2"><DollarSign className="text-primary"/> Berapa budget maksimal Anda?</h2>
-            
-            <div className="mb-8">
-                <div className="text-4xl font-bold text-primary mb-2">Rp {budget.toLocaleString("id-ID")}</div>
-                <p className="text-sm text-gray-500">Geser untuk atur budget</p>
-            </div>
+            <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 max-w-lg mx-auto text-center">
+                <h2 className="text-xl font-bold">Berapa budget maksimalmu?</h2>
+                
+                <div className="py-8">
+                    <div className="text-4xl font-bold text-primary font-mono mb-6">
+                        Rp {budget.toLocaleString("id-ID")}
+                    </div>
+                    <input 
+                        type="range" 
+                        min="3000000" 
+                        max="30000000" 
+                        step="500000"
+                        value={budget}
+                        onChange={(e) => setBudget(parseInt(e.target.value))}
+                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary hover:accent-primary-glow"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-2 font-mono">
+                        <span>3 Juta</span>
+                        <span>30 Juta++</span>
+                    </div>
+                </div>
 
-            {/* PERBAIKAN DI SINI: min="0" supaya bisa geser sampai mentok kiri */}
-            <input 
-                type="range" 
-                min="0"             
-                max="50000000" 
-                step="500000" 
-                value={budget} 
-                onChange={(e) => setBudget(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary mb-8"
-            />
-
-            <div className="flex gap-4 justify-center">
-                <button onClick={() => setStep(1)} className="px-6 py-3 rounded-xl border border-white/20 hover:bg-white/5 transition">Kembali</button>
-                <button onClick={handleSearch} className="px-8 py-3 rounded-xl bg-primary text-black font-bold hover:bg-primary-glow shadow-[0_0_20px_rgba(0,220,130,0.4)] transition flex items-center gap-2">
-                    Analisis & Cari <Search className="w-4 h-4"/>
+                <button 
+                    onClick={findLaptops}
+                    className="w-full py-4 bg-primary text-black font-bold rounded-xl hover:bg-primary-glow shadow-[0_0_20px_rgba(0,220,130,0.4)] transition flex items-center justify-center gap-2"
+                >
+                    <Search className="w-5 h-5" /> Cari Sekarang
                 </button>
-            </div>
-          </motion.div>
+                <button onClick={() => setStep(1)} className="text-gray-500 text-sm hover:text-white">Kembali</button>
+            </motion.div>
         )}
 
-        {/* --- STEP 3: HASIL PENCARIAN --- */}
-        {step === 3 && (
-            <div className="space-y-6">
-                {/* Loading State */}
-                {loading && (
-                    <div className="text-center py-20">
-                        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <h3 className="text-xl font-bold animate-pulse">Mencocokkan Spesifikasi...</h3>
+        {/* --- STEP 3: LOADING --- */}
+        {loading && (
+            <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <RefreshCcw className="w-10 h-10 text-primary animate-spin" />
+                <p className="text-gray-400 animate-pulse">Sedang menganalisa spek...</p>
+            </div>
+        )}
+
+        {/* --- STEP 4: HASIL --- */}
+        {step === 3 && !loading && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold">Rekomendasi Kami ({results.length})</h2>
+                    <button onClick={resetFinder} className="text-sm text-primary hover:underline flex items-center gap-1">
+                        <RefreshCcw className="w-3 h-3" /> Ulangi
+                    </button>
+                </div>
+
+                {results.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {results.map((item, idx) => (
+                            <div key={item.id} className="bg-surface border border-white/10 rounded-2xl p-4 flex gap-4 hover:border-primary/50 transition-all group">
+                                <div className="w-24 h-24 bg-black rounded-lg overflow-hidden flex-shrink-0">
+                                    {item.image_url ? (
+                                        <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-600"><Laptop /></div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-lg leading-tight mb-1 group-hover:text-primary transition-colors">{item.name}</h3>
+                                    <div className="text-primary font-bold font-mono">Rp {item.price.toLocaleString("id-ID")}</div>
+                                    <div className="mt-3 flex items-center gap-2">
+                                        <Link href={`/shop/${item.id}`} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition">
+                                            Lihat Detail
+                                        </Link>
+                                        <Link href={`https://wa.me/6281234567890?text=Halo,%20saya%20mau%20${item.name}`} target="_blank" className="text-xs bg-primary/20 text-primary hover:bg-primary hover:text-black px-3 py-1.5 rounded-lg transition font-bold">
+                                            Beli
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl">
+                        <p className="text-gray-400 mb-4">Waduh, belum ada laptop yang pas sama kriteria ini.</p>
+                        <button onClick={() => setStep(2)} className="text-primary font-bold hover:underline">Coba naikkan budget dikit?</button>
                     </div>
                 )}
-
-                {/* Hasil Ditemukan */}
-                {!loading && hasSearched && results.length > 0 && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-white">Rekomendasi Terbaik ({results.length})</h2>
-                            <button onClick={() => setStep(1)} className="text-sm text-gray-400 hover:text-white underline">Ulangi Pencarian</button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {results.map((item, idx) => (
-                                <div key={item.id} className="relative bg-surface border border-white/10 p-6 rounded-2xl hover:border-primary/50 transition-all group">
-                                    {idx === 0 && <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-full shadow-lg">⭐ Best Match</div>}
-                                    
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="p-3 bg-white/5 rounded-xl"><Laptop className="w-8 h-8 text-gray-300"/></div>
-                                        <div className="text-right">
-                                            <div className="text-xs text-gray-500 uppercase font-bold">Harga</div>
-                                            <div className="text-xl font-bold text-primary">Rp {item.price.toLocaleString("id-ID")}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <h3 className="text-lg font-bold text-white mb-2">{item.name}</h3>
-                                    <p className="text-sm text-gray-400 mb-4">Cocok untuk kebutuhan {usage} dengan budget di bawah {(budget/1000000).toFixed(0)} Juta.</p>
-                                    
-                                    <Link href={`https://wa.me/6281234567890?text=Halo,%20saya%20tertarik%20dengan%20${item.name}%20hasil%20rekomendasi%20web`} target="_blank" className="block w-full py-3 bg-white/10 hover:bg-primary hover:text-black text-center rounded-xl font-bold transition-colors">
-                                        Pesan Sekarang
-                                    </Link>
-                                </div>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* Tidak Ada Hasil (Stok Kosong) */}
-                {!loading && hasSearched && results.length === 0 && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 bg-surface border border-white/10 rounded-2xl">
-                        <Frown className="w-16 h-16 text-gray-600 mx-auto mb-4"/>
-                        <h3 className="text-xl font-bold text-white mb-2">Maaf, Stok Kosong</h3>
-                        <p className="text-gray-400 max-w-md mx-auto mb-6">Tidak ada laptop di database kami yang sesuai dengan budget Rp {budget.toLocaleString("id-ID")}. Coba naikkan budget Anda.</p>
-                        <button onClick={() => setStep(2)} className="px-6 py-2 bg-primary text-black font-bold rounded-lg hover:bg-primary-glow">Atur Ulang Budget</button>
-                    </motion.div>
-                )}
-            </div>
+            </motion.div>
         )}
 
       </div>
     </main>
   );
-}
-
-// Komponen Kartu Pilihan (Step 1)
-function UsageCard({ icon: Icon, label, desc, onClick }: any) {
-    return (
-        <button onClick={onClick} className="text-left p-6 rounded-xl border border-white/10 bg-black/20 hover:bg-primary/10 hover:border-primary/50 transition-all group">
-            <Icon className="w-8 h-8 text-gray-400 group-hover:text-primary mb-4 transition-colors"/>
-            <h3 className="text-lg font-bold text-white mb-1">{label}</h3>
-            <p className="text-sm text-gray-500 group-hover:text-gray-300">{desc}</p>
-        </button>
-    )
 }
