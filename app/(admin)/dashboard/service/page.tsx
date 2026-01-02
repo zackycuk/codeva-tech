@@ -1,288 +1,282 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, Wrench, CheckCircle, Clock, Save, X, Printer, Thermometer, Loader2, Search } from "lucide-react";
+import { Plus, Wrench, Save, X, Search, Trash2, Edit, MapPin, Phone, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- HARGA & OPSI (Tetap di sini sebagai acuan) ---
-const SERVICE_FEE = 150000;
-const PASTE_OPTIONS = [
-  { name: "Arctic MX-6 (Standard)", price: 0 },
-  { name: "Thermal Grizzly Kryonaut", price: 150000 },
-  { name: "Honeywell PTM7950", price: 250000 },
-];
-const PAD_OPTIONS = [
-  { name: "Standard Pads", price: 0 },
-  { name: "Gelid GP-Ultimate", price: 125000 },
-  { name: "K5 Pro Viscous", price: 100000 },
-];
-
 export default function ServicePage() {
-  // State Data
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // State UI
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [invoiceData, setInvoiceData] = useState<any>(null); // Untuk pop-up nota
-
-  // State Form Input
+  
+  // FORM DATA (Lengkap dengan Address)
   const [formData, setFormData] = useState({
-    customer: "",
-    wa: "",
-    unit: "",
-    paste: PASTE_OPTIONS[0], // Default pilihan pertama
-    pad: PAD_OPTIONS[0],     // Default pilihan pertama
-    cleaning: false
+    customer_name: "",
+    device_name: "",
+    issue: "",
+    phone: "",
+    address: "", // <-- KOLOM BARU
+    price: "0",
+    status: "Pending"
   });
 
-  // Hitung Total Otomatis saat user pilih-pilih
-  const currentTotal = SERVICE_FEE + formData.paste.price + formData.pad.price + (formData.cleaning ? 50000 : 0);
-
-  // --- 1. AMBIL DATA DARI DATABASE (READ) ---
+  // --- 1. AMBIL DATA (READ) ---
   const fetchServices = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('services')
       .select('*')
       .order('created_at', { ascending: false });
-
-    if (!error) setServices(data || []);
+    
+    if (error) console.error("Error fetch:", error);
+    else setServices(data || []);
+    
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
+  useEffect(() => { fetchServices(); }, []);
 
-  // --- 2. SIMPAN DATA BARU (CREATE) ---
+  // --- 2. TAMBAH DATA (CREATE) ---
   const handleSaveService = async () => {
-    if (!formData.customer || !formData.unit) {
-      alert("Nama Pelanggan dan Unit Laptop wajib diisi!");
-      return;
+    if (!formData.customer_name || !formData.device_name) {
+        alert("Nama Pelanggan & Barang wajib diisi!");
+        return;
     }
-
     setIsSaving(true);
+
+    // Kirim data ke Supabase (termasuk alamat)
     const { error } = await supabase.from('services').insert([{
-      customer_name: formData.customer,
-      whatsapp: formData.wa,
-      unit_model: formData.unit,
-      thermal_paste: formData.paste.name, // Simpan namanya saja
-      thermal_pad: formData.pad.name,     // Simpan namanya saja
-      is_deep_clean: formData.cleaning,
-      total_price: currentTotal,
-      status: "Antrian"
+        customer_name: formData.customer_name,
+        device_name: formData.device_name,
+        issue: formData.issue,
+        phone: formData.phone,
+        address: formData.address, // <-- SIMPAN ALAMAT
+        price: parseInt(formData.price),
+        status: "Pending"
     }]);
 
-    if (error) {
-      alert("Gagal simpan: " + error.message);
+    if (!error) {
+        setIsModalOpen(false);
+        // Reset form jadi kosong lagi
+        setFormData({ customer_name: "", device_name: "", issue: "", phone: "", address: "", price: "0", status: "Pending" });
+        fetchServices(); // Refresh data
     } else {
-      setIsModalOpen(false);
-      fetchServices(); // Refresh tabel
-      // Reset Form
-      setFormData({ customer: "", wa: "", unit: "", paste: PASTE_OPTIONS[0], pad: PAD_OPTIONS[0], cleaning: false });
+        alert("Gagal simpan: " + error.message);
     }
     setIsSaving(false);
   };
 
-  // --- 3. UPDATE STATUS (Ganti jadi Selesai/Diambil) ---
-  const handleUpdateStatus = async (id: number, newStatus: string) => {
+  // --- 3. UBAH STATUS & HARGA ---
+  const updateStatus = async (id: number, newStatus: string) => {
     await supabase.from('services').update({ status: newStatus }).eq('id', id);
     fetchServices();
   };
 
+  const updatePrice = async (id: number, currentPrice: number) => {
+    const newPrice = prompt("Masukkan biaya servis baru:", currentPrice.toString());
+    if (newPrice !== null) {
+        await supabase.from('services').update({ price: parseInt(newPrice) }).eq('id', id);
+        fetchServices();
+    }
+  };
+
+  // --- 4. HAPUS DATA ---
+  const handleDelete = async (id: number) => {
+    if (confirm("Yakin mau hapus data servis ini?")) {
+        await supabase.from('services').delete().eq('id', id);
+        fetchServices();
+    }
+  };
+
+  // Filter Pencarian & Warna Status
+  const filteredServices = services.filter(s => 
+    s.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.device_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+        case 'Done': return 'bg-green-500/20 text-green-400 border-green-500/30';
+        case 'Repairing': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+        case 'Waiting Part': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+        case 'Cancel': return 'bg-red-500/20 text-red-400 border-red-500/30';
+        default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
   return (
-    <div className="space-y-6 relative min-h-screen pb-20">
-      
+    <div className="space-y-6 pb-20">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <Wrench className="text-primary" /> Service Queue
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+                Service Masuk 
+                <span className="text-sm bg-white/10 px-2 py-1 rounded-full text-gray-400">{services.length} Unit</span>
             </h1>
-            <p className="text-gray-400">Input servis, kalkulasi biaya, dan cetak nota.</p>
+            <p className="text-gray-400 text-sm">Kelola antrian perbaikan teknisi.</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="px-5 py-2.5 bg-primary text-black font-bold rounded-xl hover:bg-primary-glow shadow-[0_0_20px_rgba(0,220,130,0.3)] transition flex items-center gap-2">
-            <Plus className="w-5 h-5" /> Input Servis Baru
+        <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-primary text-black font-bold rounded-lg hover:bg-primary-glow shadow-[0_0_15px_rgba(0,220,130,0.4)] flex items-center gap-2">
+            <Plus className="w-5 h-5" /> Servis Baru
         </button>
       </div>
 
-      {/* TABEL SERVICE */}
-      <div className="rounded-xl border border-white/10 bg-surface overflow-hidden">
-        <table className="w-full text-left text-sm text-gray-400">
-            <thead className="bg-white/5 text-white uppercase font-bold text-xs">
-                <tr>
-                    <th className="px-6 py-4">ID & Tanggal</th>
-                    <th className="px-6 py-4">Pelanggan</th>
-                    <th className="px-6 py-4">Unit & Specs</th>
-                    <th className="px-6 py-4">Total</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Aksi</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-                {loading ? <tr><td colSpan={6} className="text-center py-8">Memuat data antrian...</td></tr> : 
-                 services.map((srv) => (
-                    <tr key={srv.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4">
-                            <div className="font-mono text-primary font-bold">#SRV-{srv.id}</div>
-                            <div className="text-xs text-gray-500">{new Date(srv.created_at).toLocaleDateString()}</div>
-                        </td>
-                        <td className="px-6 py-4 font-bold text-white">
-                            {srv.customer_name}
-                            <div className="text-xs font-normal text-gray-500">{srv.whatsapp}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                            <div className="text-white mb-1">{srv.unit_model}</div>
-                            <div className="flex flex-wrap gap-1 text-[10px]">
-                                <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">{srv.thermal_paste}</span>
-                                {srv.is_deep_clean && <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">+Deep Clean</span>}
-                            </div>
-                        </td>
-                        <td className="px-6 py-4 font-bold text-white">Rp {srv.total_price.toLocaleString("id-ID")}</td>
-                        <td className="px-6 py-4">
-                            {/* Dropdown kecil ganti status */}
-                            <select 
-                                value={srv.status} 
-                                onChange={(e) => handleUpdateStatus(srv.id, e.target.value)}
-                                className={`bg-transparent border-none text-xs font-bold focus:ring-0 cursor-pointer ${
-                                    srv.status === "Selesai" ? "text-primary" : 
-                                    srv.status === "Diambil" ? "text-gray-500" : "text-yellow-400"
-                                }`}
-                            >
-                                <option className="bg-surface text-gray-400" value="Antrian">Antrian</option>
-                                <option className="bg-surface text-primary" value="Selesai">✅ Selesai</option>
-                                <option className="bg-surface text-gray-400" value="Diambil">📦 Diambil</option>
-                            </select>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                            <button 
-                                onClick={() => setInvoiceData(srv)}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors text-xs font-bold"
-                            >
-                                <Printer className="w-3 h-3" /> Nota
-                            </button>
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-         {!loading && services.length === 0 && <div className="p-8 text-center text-gray-500">Belum ada servis masuk.</div>}
+      {/* SEARCH BAR */}
+      <div className="bg-surface p-4 rounded-xl border border-white/10 relative">
+        <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+        <input 
+            type="text" 
+            placeholder="Cari nama pelanggan atau tipe laptop..." 
+            className="w-full bg-black/20 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white outline-none focus:border-primary transition-colors"
+            onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* --- MODAL INPUT SERVIS --- */}
+      {/* DAFTAR SERVIS */}
+      <div className="grid grid-cols-1 gap-4">
+        {loading ? <div className="text-center py-10 text-gray-500 animate-pulse">Memuat data servis...</div> : 
+         filteredServices.map((item) => (
+            <motion.div 
+                key={item.id} 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-surface border border-white/10 rounded-xl p-5 hover:border-primary/30 transition-all group"
+            >
+                <div className="flex flex-col md:flex-row justify-between gap-4">
+                    {/* INFO UTAMA (KIRI) */}
+                    <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-white">{item.customer_name}</h3>
+                            <span className="text-xs text-gray-500 font-mono bg-black/30 px-2 py-0.5 rounded">#{item.id}</span>
+                        </div>
+                        
+                        {/* Info Kontak & Alamat (Disini Munculnya) */}
+                        <div className="text-sm text-gray-400 flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <Phone className="w-3 h-3 text-primary" /> {item.phone || "-"}
+                            </div>
+                            {item.address && (
+                                <div className="flex items-start gap-2">
+                                    <MapPin className="w-3 h-3 text-primary mt-0.5 flex-shrink-0" /> 
+                                    <span className="leading-tight text-gray-500">{item.address}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="h-px bg-white/5 my-2 w-full"></div>
+
+                        <div className="text-primary font-medium flex items-center gap-2">
+                            <Wrench className="w-4 h-4" /> {item.device_name}
+                        </div>
+                        <p className="text-sm text-gray-400">Keluhan: <span className="text-white italic">"{item.issue}"</span></p>
+                    </div>
+
+                    {/* STATUS & AKSI (KANAN) */}
+                    <div className="flex flex-col items-start md:items-end gap-3 min-w-[200px]">
+                        
+                        {/* Dropdown Status */}
+                        <select 
+                            value={item.status}
+                            onChange={(e) => updateStatus(item.id, e.target.value)}
+                            className={`text-xs font-bold px-3 py-1.5 rounded-lg border appearance-none cursor-pointer outline-none ${getStatusColor(item.status)}`}
+                        >
+                            <option value="Pending">Checking</option>
+                            <option value="Repairing">Sedang Dikerjakan</option>
+                            <option value="Waiting Part">Menunggu Sparepart</option>
+                            <option value="Done">Selesai / Bisa Diambil</option>
+                            <option value="Cancel">Batal</option>
+                        </select>
+
+                        {/* Edit Harga */}
+                        <div onClick={() => updatePrice(item.id, item.price)} className="text-xl font-bold font-mono text-white cursor-pointer hover:text-primary flex items-center gap-2">
+                           Rp {item.price.toLocaleString("id-ID")}
+                           <Edit className="w-3 h-3 opacity-50" />
+                        </div>
+
+                        {/* Tombol WA & Hapus */}
+                        <div className="flex items-center gap-2 mt-auto">
+                            <button onClick={() => window.open(`https://wa.me/${item.phone}?text=Halo ${item.customer_name}, update status servis ${item.device_name}: ${item.status}`, '_blank')} className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500 hover:text-black transition">
+                                <span className="text-xs font-bold">WA</span>
+                            </button>
+                            <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+        ))}
+        
+        {!loading && services.length === 0 && (
+             <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl">
+                <p className="text-gray-500">Belum ada data servis.</p>
+            </div>
+        )}
+      </div>
+
+      {/* --- MODAL FORM INPUT (Lengkap dengan Alamat) --- */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} 
-                className="bg-surface border border-white/10 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#0a0a0a] border border-white/10 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-white/10 flex justify-between">
                 <h2 className="text-xl font-bold text-white">Input Servis Baru</h2>
-                <button onClick={() => setIsModalOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
+                <button onClick={() => setIsModalOpen(false)}><X className="text-gray-400 hover:text-white"/></button>
               </div>
-
-              <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+              
+              <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <InputGroup label="Nama Pelanggan" value={formData.customer} onChange={(e:any) => setFormData({...formData, customer: e.target.value})} />
-                    <InputGroup label="No. WhatsApp" placeholder="08..." value={formData.wa} onChange={(e:any) => setFormData({...formData, wa: e.target.value})} />
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">Nama Pelanggan</label>
+                        <input type="text" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary" placeholder="Nama..."
+                            value={formData.customer_name} onChange={e => setFormData({...formData, customer_name: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">No. WhatsApp</label>
+                        <input type="text" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary" placeholder="62..."
+                            value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                    </div>
                 </div>
-                <InputGroup label="Unit Laptop / PC" placeholder="Contoh: Asus ROG Strix G15" value={formData.unit} onChange={(e:any) => setFormData({...formData, unit: e.target.value})} />
 
-                {/* PILIHAN TEKNIS */}
-                <div className="p-4 rounded-xl bg-black/30 border border-white/10 space-y-4">
-                    <h3 className="font-bold text-primary text-sm uppercase tracking-wider flex items-center gap-2"><Thermometer className="w-4 h-4"/> Spesifikasi Thermal</h3>
-                    
-                    {/* Pilih Pasta */}
-                    <div className="grid gap-2">
-                        <label className="text-xs text-gray-400">Thermal Paste</label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            {PASTE_OPTIONS.map((opt) => (
-                                <div key={opt.name} onClick={() => setFormData({...formData, paste: opt})} 
-                                    className={`p-3 rounded-lg border cursor-pointer text-center transition-all ${formData.paste.name === opt.name ? "border-primary bg-primary/10" : "border-white/10 hover:bg-white/5"}`}>
-                                    <div className="text-xs font-bold text-white">{opt.name}</div>
-                                    <div className="text-[10px] text-primary">{opt.price === 0 ? "Free" : `+Rp ${opt.price/1000}rb`}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                {/* INPUT ALAMAT */}
+                <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Alamat Lengkap</label>
+                    <textarea className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary h-20 resize-none" placeholder="Jalan, No. Rumah, Kota..."
+                        value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}></textarea>
+                </div>
+                
+                <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Unit / Device</label>
+                    <input type="text" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary" placeholder="Contoh: Macbook Air M1"
+                        value={formData.device_name} onChange={e => setFormData({...formData, device_name: e.target.value})} />
+                </div>
 
-                    {/* Pilih Pad & Cleaning */}
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-white/5">
-                        <span className="text-sm text-gray-300">Deep Cleaning (Kipas & Heatsink)</span>
-                        <input type="checkbox" className="accent-primary w-5 h-5" checked={formData.cleaning} onChange={(e) => setFormData({...formData, cleaning: e.target.checked})} />
-                    </div>
+                <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Keluhan / Kerusakan</label>
+                    <textarea className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary h-24 resize-none" placeholder="Detail kerusakan..."
+                        value={formData.issue} onChange={e => setFormData({...formData, issue: e.target.value})}></textarea>
+                </div>
+
+                <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Estimasi Biaya (Rp)</label>
+                    <input type="number" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary"
+                        value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
                 </div>
               </div>
 
-              {/* FOOTER TOTAL HARGA */}
-              <div className="px-6 py-4 bg-black/50 border-t border-white/10 flex justify-between items-center">
-                <div>
-                    <div className="text-xs text-gray-400">Total Estimasi Biaya</div>
-                    <div className="text-2xl font-bold text-primary">Rp {currentTotal.toLocaleString("id-ID")}</div>
-                </div>
-                <button onClick={handleSaveService} disabled={isSaving} className="px-6 py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary-glow transition disabled:opacity-50 flex items-center gap-2">
-                   {isSaving && <Loader2 className="w-4 h-4 animate-spin"/>} Proses Servis
+              <div className="p-6 border-t border-white/10 flex justify-end gap-3 bg-white/5">
+                <button onClick={() => setIsModalOpen(false)} className="px-5 py-2 rounded-xl text-gray-400 hover:text-white">Batal</button>
+                <button onClick={handleSaveService} disabled={isSaving} className="px-6 py-2 bg-primary text-black font-bold rounded-xl hover:bg-primary-glow flex items-center gap-2">
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>} Simpan
                 </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
-      {/* --- MODAL INVOICE (STRUK) --- */}
-      <AnimatePresence>
-        {invoiceData && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-white text-black w-full max-w-sm shadow-2xl overflow-hidden relative">
-                
-                <div className="p-8 font-mono text-sm leading-relaxed relative print-area">
-                    <div className="text-center mb-6 border-b-2 border-dashed border-black/20 pb-4">
-                        <div className="font-bold text-2xl mb-1">CODEVA TECH</div>
-                        <div className="text-xs text-gray-600">Specialist Laptop & PC Builder</div>
-                        <div className="text-xs mt-2 font-bold">{new Date(invoiceData.created_at).toLocaleDateString()}</div>
-                    </div>
-
-                    <div className="mb-4 text-xs">
-                        <div className="flex justify-between"><span>No. Order:</span> <span className="font-bold">#SRV-{invoiceData.id}</span></div>
-                        <div className="flex justify-between"><span>Customer:</span> <span className="font-bold">{invoiceData.customer_name}</span></div>
-                    </div>
-
-                    <table className="w-full mb-4 text-xs">
-                        <tbody>
-                            <tr><td className="py-1">Jasa Service</td><td className="text-right">150.000</td></tr>
-                            <tr><td className="py-1">{invoiceData.thermal_paste}</td><td className="text-right">-</td></tr>
-                            {invoiceData.is_deep_clean && <tr><td className="py-1">Deep Cleaning</td><td className="text-right">50.000</td></tr>}
-                        </tbody>
-                    </table>
-
-                    <div className="border-t-2 border-black border-dashed pt-2 mb-8">
-                        <div className="flex justify-between text-lg font-bold">
-                            <span>TOTAL</span>
-                            <span>Rp {invoiceData.total_price.toLocaleString("id-ID")}</span>
-                        </div>
-                    </div>
-                    <div className="text-center text-xs text-gray-500"><p>Garansi 7 Hari</p></div>
-                </div>
-
-                <div className="bg-gray-100 p-4 flex gap-2">
-                    <button onClick={() => setInvoiceData(null)} className="flex-1 py-2 rounded border border-gray-300 font-bold">Tutup</button>
-                    <button onClick={() => window.print()} className="flex-1 py-2 rounded bg-black text-white font-bold flex justify-center items-center gap-2"><Printer className="w-4 h-4"/> Print</button>
-                </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
-}
-
-function InputGroup({ label, placeholder, value, onChange }: any) {
-    return (
-        <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-500 uppercase">{label}</label>
-            <input type="text" value={value} onChange={onChange} className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white focus:border-primary outline-none" placeholder={placeholder} />
-        </div>
-    )
 }
