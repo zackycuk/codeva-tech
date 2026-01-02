@@ -27,7 +27,7 @@ export default function LoginPage() {
     // Di sini kita set username & password manual dulu biar aman & cepat.
     // Nanti kalau mau canggih bisa connect ke Supabase Auth.
     
-    const EMAIL_RAHASIA = "admin@codeva.tech";
+    const EMAIL_RAHASIA = "admin@jaki";
     const PASSWORD_RAHASIA = "admin123";
 
     // Cek Kecocokan
