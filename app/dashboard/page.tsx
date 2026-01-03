@@ -3,14 +3,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { 
-  LayoutDashboard, Wrench, Package, TrendingUp, Users, 
-  Plus, Search, Trash2, LogOut, Save, Edit, X 
+  LayoutDashboard, Wrench, Package, TrendingUp, 
+  Plus, Trash2, LogOut, X, Edit, Save 
 } from "lucide-react";
 
 export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("service"); // 'service' atau 'inventory'
+  const [activeTab, setActiveTab] = useState("service"); 
   
   // DATA
   const [services, setServices] = useState<any[]>([]);
@@ -21,9 +21,22 @@ export default function Dashboard() {
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
+  // STATE UNTUK EDIT
+  const [editingProduct, setEditingProduct] = useState<any>(null); // Kalau null berarti mode TAMBAH
+
   // FORM DATA
-  const [serviceForm, setServiceForm] = useState({ customer_name: "", phone: "", device_name: "", issue: "", price: 0, status: "Checking" });
-  const [productForm, setProductForm] = useState({ name: "", price: 0, specs: "", image_url: "", stock: 1 });
+  const [serviceForm, setServiceForm] = useState({ 
+    customer_name: "", phone: "", device_name: "", issue: "", price: 0, status: "Checking" 
+  });
+  
+  const [productForm, setProductForm] = useState({ 
+    name: "", 
+    price: 0, 
+    specs: "", 
+    image_url: "", 
+    stock: 1, 
+    category: "Laptop" 
+  });
 
   // 1. CEK LOGIN & AMBIL DATA
   useEffect(() => {
@@ -45,11 +58,11 @@ export default function Dashboard() {
     const { data: sData } = await supabase.from('services').select('*').order('created_at', { ascending: false });
     if (sData) setServices(sData);
 
-    // Ambil Data Products (Katalog) - Pastikan tabel 'products' ada
+    // Ambil Data Products
     const { data: pData } = await supabase.from('products').select('*').order('created_at', { ascending: false });
     if (pData) setProducts(pData);
 
-    // Hitung Statistik Sederhana
+    // Hitung Statistik
     const totalRev = (sData || []).reduce((acc, curr) => acc + (curr.status === 'Done' ? (curr.price || 0) : 0), 0);
     setStats({
         revenue: totalRev,
@@ -83,16 +96,58 @@ export default function Dashboard() {
     }
   };
 
-  // --- LOGIC INVENTORY ---
+  // --- LOGIC INVENTORY (TAMBAH & EDIT) ---
+  
+  // 1. Fungsi Buka Modal untuk Edit
+  const openEditModal = (product: any) => {
+    setEditingProduct(product); // Simpan data produk yang mau diedit
+    setProductForm({
+        name: product.name,
+        price: product.price,
+        specs: product.specs || "",
+        image_url: product.image_url || "",
+        stock: product.stock,
+        category: product.category || "Laptop"
+    });
+    setIsProductModalOpen(true);
+  };
+
+  // 2. Fungsi Buka Modal untuk Tambah Baru
+  const openAddModal = () => {
+    setEditingProduct(null); // Reset mode jadi tambah baru
+    setProductForm({ name: "", price: 0, specs: "", image_url: "", stock: 1, category: "Laptop" });
+    setIsProductModalOpen(true);
+  };
+
+  // 3. Fungsi Submit (Bisa Simpan Baru / Update)
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('products').insert([productForm]);
-    if (!error) {
-        setIsProductModalOpen(false);
-        setProductForm({ name: "", price: 0, specs: "", image_url: "", stock: 1 });
-        fetchData();
+    
+    if (editingProduct) {
+        // --- LOGIC UPDATE (EDIT) ---
+        const { error } = await supabase
+            .from('products')
+            .update(productForm) // Update data baru
+            .eq('id', editingProduct.id); // Berdasarkan ID lama
+
+        if (!error) {
+            setIsProductModalOpen(false);
+            setEditingProduct(null);
+            fetchData();
+        } else {
+            alert("Gagal update produk!");
+        }
+
     } else {
-        alert("Gagal simpan produk. Pastikan tabel 'products' ada!");
+        // --- LOGIC INSERT (TAMBAH BARU) ---
+        const { error } = await supabase.from('products').insert([productForm]);
+        if (!error) {
+            setIsProductModalOpen(false);
+            setProductForm({ name: "", price: 0, specs: "", image_url: "", stock: 1, category: "Laptop" });
+            fetchData();
+        } else {
+            alert("Gagal simpan produk!");
+        }
     }
   };
 
@@ -124,7 +179,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* STATS CARDS (REVENUE MUNCUL LAGI DISINI) */}
+      {/* STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
         <div className="bg-[#111] border border-white/10 p-5 rounded-xl flex items-center gap-4">
             <div className="bg-green-500/20 p-3 rounded-lg text-green-500"><TrendingUp size={24} /></div>
@@ -226,29 +281,38 @@ export default function Dashboard() {
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h2 className="text-lg font-bold">Stok Laptop & Part</h2>
-                <button onClick={() => setIsProductModalOpen(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-500">
+                {/* BUTTON TAMBAH: Panggil fungsi openAddModal */}
+                <button onClick={openAddModal} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-500">
                     <Plus size={16} /> Tambah Produk
                 </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {products.map((item) => (
-                    <div key={item.id} className="bg-[#111] border border-white/10 rounded-xl overflow-hidden group hover:border-blue-500/50 transition">
+                    <div key={item.id} className="bg-[#111] border border-white/10 rounded-xl overflow-hidden group hover:border-blue-500/50 transition relative">
+                        {/* TOMBOL EDIT & HAPUS (MUNCUL SAAT HOVER) */}
+                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition z-10">
+                            <button onClick={() => openEditModal(item)} className="bg-blue-500 p-1.5 rounded text-white hover:bg-blue-400 shadow-lg">
+                                <Edit size={14} />
+                            </button>
+                            <button onClick={() => deleteProduct(item.id)} className="bg-red-500 p-1.5 rounded text-white hover:bg-red-400 shadow-lg">
+                                <Trash2 size={14} />
+                            </button>
+                        </div>
+
                         <div className="h-32 bg-white/5 relative">
-                            {/* Kalau ada gambar tampilkan, kalau gak ada placeholder */}
                             {item.image_url ? (
                                 <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="flex items-center justify-center h-full text-gray-600"><Package size={32}/></div>
                             )}
-                            <button onClick={() => deleteProduct(item.id)} className="absolute top-2 right-2 bg-red-500/80 p-1 rounded text-white opacity-0 group-hover:opacity-100 transition"><Trash2 size={14}/></button>
                         </div>
                         <div className="p-4">
                             <h3 className="font-bold text-white truncate">{item.name}</h3>
                             <p className="text-primary font-mono text-sm mt-1">Rp {item.price?.toLocaleString()}</p>
                             <div className="flex justify-between items-center mt-3 text-xs text-gray-500">
                                 <span>Stok: {item.stock || 1}</span>
-                                <span className="uppercase border border-white/10 px-2 py-0.5 rounded">Laptop</span>
+                                <span className="uppercase border border-white/10 px-2 py-0.5 rounded">{item.category || 'Laptop'}</span>
                             </div>
                         </div>
                     </div>
@@ -282,21 +346,61 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* MODAL PRODUCT */}
+      {/* MODAL PRODUCT (BISA UNTUK EDIT & TAMBAH) */}
       {isProductModalOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="bg-[#111] border border-white/10 p-6 rounded-2xl w-full max-w-md space-y-4 relative">
                 <button onClick={() => setIsProductModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white"><X size={20}/></button>
-                <h2 className="text-xl font-bold text-blue-500">Tambah Produk Katalog</h2>
-                <input placeholder="Nama Laptop" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white" 
+                
+                {/* JUDUL DINAMIS */}
+                <h2 className="text-xl font-bold text-blue-500">
+                    {editingProduct ? "Edit Produk" : "Tambah Produk Baru"}
+                </h2>
+                
+                {/* Input Nama */}
+                <input placeholder="Nama Produk" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500" 
+                    value={productForm.name}
                     onChange={(e) => setProductForm({...productForm, name: e.target.value})} />
-                <input type="number" placeholder="Harga Jual" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white" 
+
+                {/* Menu Kategori */}
+                <select 
+                    className="w-full bg-[#0a0a0a] border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500 appearance-none"
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({...productForm, category: e.target.value})}
+                >
+                    <option value="Laptop">Laptop</option>
+                    <option value="Aksesoris"> Aksesoris</option>
+                    <option value="Sparepart"> Sparepart / Hardware</option>
+                    <option value="PC Rakitan"> PC Rakitan</option>
+                </select>
+                
+                {/* Input Deskripsi/Specs (YANG KEMARIN KITA TAMBAH) */}
+                <textarea 
+                    placeholder="Deskripsi / Spesifikasi Lengkap (Boleh Enter)" 
+                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500 h-24" 
+                    value={productForm.specs}
+                    onChange={(e) => setProductForm({...productForm, specs: e.target.value})} 
+                ></textarea>
+
+                {/* Input Harga */}
+                <input type="number" placeholder="Harga Jual" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500" 
+                    value={productForm.price || ''}
                     onChange={(e) => setProductForm({...productForm, price: parseInt(e.target.value)})} />
-                <input placeholder="Link Gambar (URL)" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white" 
+
+                {/* Input Gambar */}
+                <input placeholder="Link Gambar (URL)" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500" 
+                    value={productForm.image_url}
                     onChange={(e) => setProductForm({...productForm, image_url: e.target.value})} />
-                <input type="number" placeholder="Stok Awal" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white" 
+
+                {/* Input Stok */}
+                <input type="number" placeholder="Stok Awal" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500" 
+                    value={productForm.stock || ''}
                     onChange={(e) => setProductForm({...productForm, stock: parseInt(e.target.value)})} />
-                <button onClick={handleProductSubmit} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-500">Simpan Produk</button>
+                
+                {/* Tombol Simpan Dinamis */}
+                <button onClick={handleProductSubmit} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-500 transition flex items-center justify-center gap-2">
+                    <Save size={18} /> {editingProduct ? "Update Produk" : "Simpan Produk"}
+                </button>
             </div>
         </div>
       )}
