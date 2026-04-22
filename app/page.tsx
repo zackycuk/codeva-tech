@@ -1,11 +1,27 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Laptop, Shield, Cpu } from "lucide-react";
+import { ArrowRight, Laptop, Shield, Cpu, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import ProductShowcase from "@/components/ProductShowcase"; 
-import ContactSection from "@/components/ContactSection"; // <-- Import Baru
-import FloatingWA from "@/components/FloatingWA";       // <-- Import Baru
+import ContactSection from "@/components/ContactSection"; 
+import FloatingWA from "@/components/FloatingWA";       
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.8 } }
+};
 
 export default function Home() {
   return (
@@ -22,35 +38,38 @@ export default function Home() {
 
         <div className="container mx-auto px-4 z-10 text-center">
           <motion.div 
-            initial={{ opacity: 0, y: 30 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            variants={containerVariants}
+            initial="hidden" 
+            animate="show" 
+            className="flex flex-col items-center"
           >
-            <span className="px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-6 inline-block backdrop-blur-md">
+            <motion.span variants={itemVariants} className="px-5 py-2 rounded-full border border-primary/30 bg-primary/5 text-primary text-xs font-bold uppercase tracking-[0.2em] mb-8 inline-flex items-center gap-2 backdrop-blur-md shadow-[0_0_15px_rgba(0,220,130,0.15)]">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
               Codeva Tech 2.0 Kini Hadir
-            </span>
+            </motion.span>
             
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 text-white leading-tight">
+            <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-white leading-[1.1]">
               Solusi IT Premium <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-emerald-400 to-primary animate-shine bg-[length:200%_auto]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-emerald-300 to-primary animate-shine bg-[length:200%_auto]">
                 Tanpa Kompromi.
               </span>
-            </h1>
+            </motion.h1>
             
-            <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+            <motion.p variants={itemVariants} className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-light">
               Service komputer profesional, rakit PC high-end, dan rekomendasi laptop berbasis data. 
-              Kami menggabungkan keahlian teknis dengan estetika.
-            </p>
+              Kami menggabungkan keahlian teknis dengan performa puncak.
+            </motion.p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Link href="/finder" className="group px-8 py-4 rounded-full bg-primary text-black font-bold text-lg hover:bg-primary-glow hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,220,130,0.4)] flex items-center gap-2">
+            <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+                <Link href="/finder" className="group px-8 py-4 rounded-full bg-primary text-background font-bold text-lg hover:bg-primary-glow hover:scale-105 transition-all duration-300 shadow-[0_0_25px_rgba(0,220,130,0.3)] flex items-center gap-2">
                     Cari Laptop Ideal 
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <Link href="/dashboard" className="px-8 py-4 rounded-full border border-white/20 text-white font-bold text-lg hover:bg-white/10 hover:border-white/40 transition-all backdrop-blur-sm">
+                <Link href="/dashboard" className="group px-8 py-4 rounded-full border border-white/20 text-white font-bold text-lg hover:bg-white/10 hover:border-white/40 transition-all duration-300 backdrop-blur-sm flex items-center gap-2">
                     Masuk Dashboard
+                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
                 </Link>
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -114,12 +133,15 @@ export default function Home() {
 
 function ServiceCard({ icon: Icon, title, desc }: any) {
     return (
-        <div className="p-8 rounded-2xl bg-surface border border-white/10 hover:border-primary/50 transition-all duration-300 group hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5">
-            <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary/20 transition-all">
-                <Icon className="w-7 h-7 text-primary" />
+        <div className="relative p-8 rounded-2xl bg-surface/50 border border-white/5 hover:border-primary/50 transition-all duration-500 group overflow-hidden hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(0,220,130,0.1)] backdrop-blur-md">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[60px] group-hover:bg-primary/20 transition-all duration-500"></div>
+            <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary/20 group-hover:shadow-[0_0_15px_rgba(0,220,130,0.3)] transition-all duration-300">
+                    <Icon className="w-7 h-7 text-primary" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-primary transition-colors duration-300 tracking-tight">{title}</h3>
+                <p className="text-gray-400 leading-relaxed font-light">{desc}</p>
             </div>
-            <h3 className="text-xl font-bold text-white mb-3 group-hover:text-primary transition-colors">{title}</h3>
-            <p className="text-gray-400 leading-relaxed text-sm">{desc}</p>
         </div>
     )
 }

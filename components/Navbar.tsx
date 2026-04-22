@@ -31,7 +31,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-black/80 backdrop-blur-md border-b border-white/10 py-4" : "bg-transparent py-6"}`}>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out ${scrolled ? "bg-background/70 backdrop-blur-xl border-b border-white/5 py-4 shadow-[0_4px_30px_rgba(0,0,0,0.5)]" : "bg-transparent py-5"}`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           
           {/* LOGO */}
@@ -47,16 +47,23 @@ export default function Navbar() {
               <Link 
                 key={link.name} 
                 href={link.href}
-                className={`text-sm font-bold uppercase tracking-wider hover:text-primary transition-colors ${pathname === link.href ? "text-primary" : "text-gray-300"}`}
+                className={`relative text-sm font-bold uppercase tracking-wider hover:text-white py-1 transition-colors ${pathname === link.href ? "text-white" : "text-gray-400"}`}
               >
                 {link.name}
+                {pathname === link.href && (
+                  <motion.div
+                    layoutId="nav-active"
+                    className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_rgba(0,220,130,0.8)] rounded-full"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
               </Link>
             ))}
           </div>
 
           {/* ACTION BUTTON */}
           <div className="hidden md:flex items-center gap-4">
-             <Link href="https://wa.me/6281234567890" target="_blank" className="px-5 py-2 rounded-full border border-primary text-primary font-bold text-sm hover:bg-primary hover:text-black transition-all">
+             <Link href="https://wa.me/6281234567890" target="_blank" className="px-6 py-2.5 rounded-full border border-primary/50 text-primary font-bold text-sm hover:bg-primary hover:text-background hover:shadow-[0_0_20px_rgba(0,220,130,0.4)] transition-all duration-300">
                 Konsultasi
              </Link>
           </div>
