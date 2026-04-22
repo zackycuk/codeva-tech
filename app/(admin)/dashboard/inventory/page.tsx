@@ -14,7 +14,7 @@ export default function InventoryPage() {
   const [isSaving, setIsSaving] = useState(false);
   
   // State Form (+ File Gambar)
-  const [formData, setFormData] = useState({ name: "", category: "Laptop", price: "", stock: "" });
+  const [formData, setFormData] = useState({ name: "", category: "Software", price: "" });
   const [imageFile, setImageFile] = useState<File | null>(null); 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export default function InventoryPage() {
 
   // --- CREATE DATA + UPLOAD IMAGE ---
   const handleSaveProduct = async () => {
-    if (!formData.name || !formData.price || !formData.stock) {
+    if (!formData.name || !formData.price) {
       alert("Lengkapi data wajib!");
       return;
     }
@@ -66,15 +66,15 @@ export default function InventoryPage() {
         name: formData.name,
         category: formData.category,
         price: parseInt(formData.price),
-        stock: parseInt(formData.stock),
-        status: parseInt(formData.stock) > 0 ? "Ready" : "Habis",
+        stock: 999, // Abaikan stok untuk layanan
+        status: "Tersedia",
         image_url: finalImageUrl
     }]);
 
     if (!error) {
       setIsModalOpen(false);
       fetchProducts();
-      setFormData({ name: "", category: "Laptop", price: "", stock: "" });
+      setFormData({ name: "", category: "Software", price: "" });
       setImageFile(null);
       setPreviewUrl(null);
     } else {
@@ -101,12 +101,12 @@ export default function InventoryPage() {
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-                Inventory Real-Time 
+                Manajemen Service Catalog
                 {loading && <RefreshCw className="w-5 h-5 animate-spin text-primary"/>}
             </h1>
         </div>
         <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-primary text-black font-bold rounded-lg hover:bg-primary-glow flex items-center gap-2 shadow-[0_0_15px_rgba(0,220,130,0.4)]">
-            <Plus className="w-5 h-5" /> Tambah Barang
+            <Plus className="w-5 h-5" /> Tambah Jasa Servis
         </button>
       </div>
 
@@ -125,7 +125,7 @@ export default function InventoryPage() {
       <div className="rounded-xl border border-white/10 bg-surface overflow-hidden shadow-2xl">
         <table className="w-full text-left text-sm text-gray-400">
             <thead className="bg-white/5 text-white uppercase font-bold text-xs">
-                <tr><th className="p-4">Produk</th><th className="p-4">Harga</th><th className="p-4">Stok</th><th className="p-4 text-right">Aksi</th></tr>
+                <tr><th className="p-4">Layanan / Jasa</th><th className="p-4">Biaya Default</th><th className="p-4 text-right">Aksi</th></tr>
             </thead>
             <tbody className="divide-y divide-white/5">
                 {filteredProducts.map((item) => (
@@ -145,11 +145,6 @@ export default function InventoryPage() {
                             </div>
                         </td>
                         <td className="p-4 text-primary font-bold font-mono">Rp {item.price.toLocaleString("id-ID")}</td>
-                        <td className="p-4">
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${item.stock > 0 ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"}`}>
-                                {item.stock} Unit
-                            </span>
-                        </td>
                         <td className="p-4 text-right">
                             <button onClick={() => handleDelete(item.id)} className="p-2 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded transition">
                                 <Trash2 className="w-4 h-4"/>
@@ -173,7 +168,7 @@ export default function InventoryPage() {
             >
               {/* Header Modal */}
               <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-                <h2 className="text-xl font-bold text-white">Tambah Barang Baru</h2>
+                <h2 className="text-xl font-bold text-white">Tambah Katalog Layanan Baru</h2>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white transition"><X className="w-5 h-5" /></button>
               </div>
 
@@ -182,7 +177,7 @@ export default function InventoryPage() {
                 
                 {/* Area Upload Foto */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Foto Produk</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Ilustrasi Jasa (Opsional)</label>
                     <div className="relative group">
                         <label className="w-full h-48 border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all overflow-hidden bg-black/30">
                             {previewUrl ? (
@@ -208,27 +203,22 @@ export default function InventoryPage() {
 
                 {/* Input Fields */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Nama Barang</label>
-                    <input autoFocus type="text" className={inputClass} placeholder="Contoh: Asus ROG Strix G15" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Kategori</label>
-                    <select className={inputClass} value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
-                        <option value="Laptop" className="bg-black text-white">Laptop & PC</option>
-                        <option value="Hardware" className="bg-black text-white">Hardware (RAM/SSD)</option>
-                        <option value="Aksesoris" className="bg-black text-white">Aksesoris (Mouse/Keyboard)</option>
-                    </select>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Nama Layanan</label>
+                    <input autoFocus type="text" className={inputClass} placeholder="Contoh: Instal Ulang Windows 11" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Harga (Rp)</label>
-                        <input type="number" className={inputClass} placeholder="0" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} />
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Kategori</label>
+                        <select className={inputClass} value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
+                            <option value="Software" className="bg-black text-white">Software (OS/Aplikasi)</option>
+                            <option value="Hardware" className="bg-black text-white">Hardware (Perbaikan Fisik)</option>
+                            <option value="Maintenance" className="bg-black text-white">Maintenance (Pembersihan, dll)</option>
+                        </select>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Stok Awal</label>
-                        <input type="number" className={inputClass} placeholder="0" value={formData.stock} onChange={(e) => setFormData({...formData, stock: e.target.value})} />
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Biaya Minimal (Rp)</label>
+                        <input type="number" className={inputClass} placeholder="0" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} />
                     </div>
                 </div>
               </div>
@@ -238,7 +228,7 @@ export default function InventoryPage() {
                 <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-gray-400 hover:text-white font-medium transition">Batal</button>
                 <button onClick={handleSaveProduct} disabled={isSaving} className="px-6 py-2.5 rounded-xl bg-primary text-black font-bold hover:bg-primary-glow shadow-[0_0_20px_rgba(0,220,130,0.2)] flex items-center gap-2 disabled:opacity-50">
                     {isSaving ? <Loader2 className="w-5 h-5 animate-spin"/> : <Save className="w-5 h-5" />}
-                    Simpan Produk
+                    Simpan Layanan
                 </button>
               </div>
             </motion.div>

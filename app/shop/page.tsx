@@ -43,8 +43,8 @@ export default function ShopPage() {
         {/* HEADER & FILTER BAR */}
         <div className="mb-10 space-y-6">
             <div className="text-center">
-                <h1 className="text-4xl font-bold mb-2">Katalog Produk</h1>
-                <p className="text-gray-400">Temukan hardware impian Anda di sini.</p>
+                <h1 className="text-4xl font-bold mb-2">Katalog Layanan Service</h1>
+                <p className="text-gray-400">Pilih paket layanan servis yang sesuai dengan masalah perangkat Anda.</p>
             </div>
 
             {/* Controls Container */}
@@ -52,10 +52,10 @@ export default function ShopPage() {
                 
                 {/* Kategori Buttons */}
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto custom-scrollbar">
-                    <FilterButton label="Semua" active={selectedCategory === "All"} onClick={() => setSelectedCategory("All")} icon={SlidersHorizontal} />
-                    <FilterButton label="Laptop" active={selectedCategory === "Laptop"} onClick={() => setSelectedCategory("Laptop")} icon={Laptop} />
+                    <FilterButton label="Semua Layanan" active={selectedCategory === "All"} onClick={() => setSelectedCategory("All")} icon={SlidersHorizontal} />
+                    <FilterButton label="Software" active={selectedCategory === "Software"} onClick={() => setSelectedCategory("Software")} icon={Laptop} />
                     <FilterButton label="Hardware" active={selectedCategory === "Hardware"} onClick={() => setSelectedCategory("Hardware")} icon={Cpu} />
-                    <FilterButton label="Aksesoris" active={selectedCategory === "Aksesoris"} onClick={() => setSelectedCategory("Aksesoris")} icon={Mouse} />
+                    <FilterButton label="Maintenance" active={selectedCategory === "Maintenance"} onClick={() => setSelectedCategory("Maintenance")} icon={Mouse} />
                 </div>
 
                 {/* Search Bar */}
@@ -82,7 +82,7 @@ export default function ShopPage() {
                     ))
                 ) : (
                     <div className="col-span-full text-center py-20 border border-dashed border-white/10 rounded-2xl text-gray-500">
-                        Produk tidak ditemukan. Coba kata kunci lain.
+                        Layanan tidak ditemukan. Coba kata kunci lain.
                     </div>
                 )}
             </div>
@@ -144,9 +144,9 @@ function ProductCard({ item, index }: any) {
                         <div className="text-[10px] text-gray-500 uppercase font-bold">Harga</div>
                         <div className="text-primary font-bold text-lg">Rp {item.price.toLocaleString("id-ID")}</div>
                     </div>
-                    {/* Tombol Beli Langsung */}
+                    {/* Tombol Booking Langsung */}
                     <Link 
-                        href={`https://wa.me/6281234567890?text=Halo%20Codeva,%20saya%20tertarik%20beli%20${item.name}`}
+                        href={`https://wa.me/6281234567890?text=Halo%20Codeva,%20saya%20tertarik%20memesan%20layanan%20${item.name}`}
                         target="_blank"
                         className="p-2.5 rounded-xl bg-white/10 hover:bg-primary hover:text-black transition-colors"
                     >
