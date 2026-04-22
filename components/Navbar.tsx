@@ -7,7 +7,24 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isConsultOpen, setIsConsultOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const [consultForm, setConsultForm] = useState({
+    name: "", address: "", laptopType: "", issue: ""
+  });
+
+  const handleConsultSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const { name, address, laptopType, issue } = consultForm;
+    if (!name || !laptopType || !issue) return alert("Harap isi bidang yang wajib!");
+    
+    const text = `Halo Codeva Tech, saya ingin konsultasi servis.\n\nNama: ${name}\nAlamat: ${address || '-'}\nTipe Laptop/PC: ${laptopType}\nKendala: ${issue}`;
+    const url = `https://wa.me/6281234567890?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    setIsConsultOpen(false);
+    setConsultForm({ name: "", address: "", laptopType: "", issue: "" });
+  };
   const pathname = usePathname();
 
   // Efek transparan saat di atas, solid saat discroll
@@ -62,9 +79,9 @@ export default function Navbar() {
 
           {/* ACTION BUTTON */}
           <div className="hidden md:flex items-center gap-4">
-             <Link href="https://wa.me/6281234567890" target="_blank" className="px-6 py-2.5 rounded-full border border-primary/50 text-primary font-bold text-sm hover:bg-primary hover:text-background hover:shadow-[0_0_20px_rgba(0,220,130,0.4)] transition-all duration-300">
+             <button onClick={() => setIsConsultOpen(true)} className="px-6 py-2.5 rounded-full border border-primary/50 text-primary font-bold text-sm hover:bg-primary hover:text-background hover:shadow-[0_0_20px_rgba(0,220,130,0.4)] transition-all duration-300">
                 Konsultasi
-             </Link>
+             </button>
           </div>
 
           {/* MOBILE MENU BUTTON */}
@@ -96,10 +113,62 @@ export default function Navbar() {
               </Link>
             ))}
 
+            <button 
+                onClick={() => { setIsOpen(false); setIsConsultOpen(true); }}
+                className="mt-4 px-8 py-3 rounded-full bg-primary text-black font-bold text-xl"
+            >
+                Konsultasi
+            </button>
+
             <Link href="/dashboard" className="text-gray-500 text-sm mt-10">
                 Login Admin
             </Link>
           </motion.div>
+        )}
+      </AnimatePresence>
+      {/* FORM KONSULTASI MODAL */}
+      <AnimatePresence>
+        {isConsultOpen && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-[#0a0a0a] border border-white/10 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative"
+            >
+              <button onClick={() => setIsConsultOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-white mb-2">Mulai Konsultasi</h2>
+                <p className="text-gray-400 text-sm mb-6">Isi form di bawah ini dan kami akan segera membalas Anda via WhatsApp untuk mendiskusikan masalah Anda.</p>
+                
+                <form onSubmit={handleConsultSubmit} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase">Nama Lengkap *</label>
+                    <input required autoFocus type="text" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Nama Anda"
+                      value={consultForm.name} onChange={e => setConsultForm({...consultForm, name: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase">Tipe Laptop / PC *</label>
+                    <input required type="text" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Contoh: Asus ROG / PC Rakitan"
+                      value={consultForm.laptopType} onChange={e => setConsultForm({...consultForm, laptopType: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase">Alamat Penjemputan (Opsional)</label>
+                    <input type="text" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Alamat lengkap..."
+                      value={consultForm.address} onChange={e => setConsultForm({...consultForm, address: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase">Kendala Utama *</label>
+                    <textarea required className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mt-1 outline-none focus:border-primary focus:ring-1 focus:ring-primary h-24 resize-none transition-all" placeholder="Ceritakan masalahnya (e.g. mati total, blue screen, keyboard rusak)"
+                      value={consultForm.issue} onChange={e => setConsultForm({...consultForm, issue: e.target.value})}></textarea>
+                  </div>
+                  <button type="submit" className="w-full px-6 py-3.5 rounded-xl bg-primary text-black font-bold hover:bg-primary-glow transition-all duration-300 shadow-[0_0_20px_rgba(0,220,130,0.3)] mt-4">
+                    Kirim ke WhatsApp
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>
