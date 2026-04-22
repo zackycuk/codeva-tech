@@ -15,7 +15,7 @@ export default function Dashboard() {
   // DATA
   const [services, setServices] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [stats, setStats] = useState({ revenue: 0, totalService: 0, totalUnit: 0 });
+  const [stats, setStats] = useState({ onProgress: 0, done: 0, totalService: 0, totalUnit: 0 });
 
   // MODALS
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -63,10 +63,14 @@ export default function Dashboard() {
     if (pData) setProducts(pData);
 
     // Hitung Statistik
-    const totalRev = (sData || []).reduce((acc, curr) => acc + (curr.status === 'Done' ? (curr.price || 0) : 0), 0);
+    const totalSrv = (sData || []).length;
+    const doneSrv = (sData || []).filter(s => s.status === 'Done').length;
+    const onProgressSrv = (sData || []).filter(s => ['Checking', 'Repairing', 'Waiting Part'].includes(s.status)).length;
+    
     setStats({
-        revenue: totalRev,
-        totalService: (sData || []).length,
+        totalService: totalSrv,
+        onProgress: onProgressSrv,
+        done: doneSrv,
         totalUnit: (pData || []).length
     });
 
@@ -180,26 +184,33 @@ export default function Dashboard() {
       </div>
 
       {/* STATS CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-        <div className="bg-[#111] border border-white/10 p-5 rounded-xl flex items-center gap-4">
-            <div className="bg-green-500/20 p-3 rounded-lg text-green-500"><TrendingUp size={24} /></div>
-            <div>
-                <p className="text-gray-500 text-xs uppercase font-bold">Total Revenue (Servis)</p>
-                <h3 className="text-2xl font-bold text-white">Rp {stats.revenue.toLocaleString('id-ID')}</h3>
-            </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <div className="bg-[#111] border border-white/10 p-5 rounded-xl flex items-center gap-4">
             <div className="bg-blue-500/20 p-3 rounded-lg text-blue-500"><Wrench size={24} /></div>
             <div>
-                <p className="text-gray-500 text-xs uppercase font-bold">Total Servis Masuk</p>
-                <h3 className="text-2xl font-bold text-white">{stats.totalService} Unit</h3>
+                <p className="text-gray-500 text-[10px] md:text-xs uppercase font-bold">Total Antrian</p>
+                <h3 className="text-xl md:text-2xl font-bold text-white">{stats.totalService}</h3>
+            </div>
+        </div>
+        <div className="bg-[#111] border border-white/10 p-5 rounded-xl flex items-center gap-4">
+            <div className="bg-orange-500/20 p-3 rounded-lg text-orange-500"><TrendingUp size={24} /></div>
+            <div>
+                <p className="text-gray-500 text-[10px] md:text-xs uppercase font-bold">On Progress</p>
+                <h3 className="text-xl md:text-2xl font-bold text-white">{stats.onProgress}</h3>
+            </div>
+        </div>
+        <div className="bg-[#111] border border-white/10 p-5 rounded-xl flex items-center gap-4">
+            <div className="bg-green-500/20 p-3 rounded-lg text-green-500"><TrendingUp size={24} /></div>
+            <div>
+                <p className="text-gray-500 text-[10px] md:text-xs uppercase font-bold">Selesai (Done)</p>
+                <h3 className="text-xl md:text-2xl font-bold text-white">{stats.done}</h3>
             </div>
         </div>
         <div className="bg-[#111] border border-white/10 p-5 rounded-xl flex items-center gap-4">
             <div className="bg-purple-500/20 p-3 rounded-lg text-purple-500"><Package size={24} /></div>
             <div>
-                <p className="text-gray-500 text-xs uppercase font-bold">Stok Laptop (Katalog)</p>
-                <h3 className="text-2xl font-bold text-white">{stats.totalUnit} Unit</h3>
+                <p className="text-gray-500 text-[10px] md:text-xs uppercase font-bold">Item Katalog</p>
+                <h3 className="text-xl md:text-2xl font-bold text-white">{stats.totalUnit}</h3>
             </div>
         </div>
       </div>
@@ -216,7 +227,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("inventory")}
             className={`pb-4 px-2 text-sm font-bold flex items-center gap-2 transition-all border-b-2 ${activeTab === 'inventory' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-white'}`}
         >
-            <Package size={16} /> Inventory Gudang
+            <Package size={16} /> Layanan Tersedia
         </button>
       </div>
 
@@ -280,10 +291,10 @@ export default function Dashboard() {
       {activeTab === 'inventory' && (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h2 className="text-lg font-bold">Stok Laptop & Part</h2>
+                <h2 className="text-lg font-bold">Katalog Layanan & Jasa</h2>
                 {/* BUTTON TAMBAH: Panggil fungsi openAddModal */}
                 <button onClick={openAddModal} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-500">
-                    <Plus size={16} /> Tambah Produk
+                    <Plus size={16} /> Tambah Layanan
                 </button>
             </div>
 
@@ -354,11 +365,11 @@ export default function Dashboard() {
                 
                 {/* JUDUL DINAMIS */}
                 <h2 className="text-xl font-bold text-blue-500">
-                    {editingProduct ? "Edit Produk" : "Tambah Produk Baru"}
+                    {editingProduct ? "Edit Layanan" : "Tambah Layanan Baru"}
                 </h2>
                 
                 {/* Input Nama */}
-                <input placeholder="Nama Produk" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500" 
+                <input placeholder="Nama Layanan / Barang" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500" 
                     value={productForm.name}
                     onChange={(e) => setProductForm({...productForm, name: e.target.value})} />
 
@@ -368,10 +379,9 @@ export default function Dashboard() {
                     value={productForm.category}
                     onChange={(e) => setProductForm({...productForm, category: e.target.value})}
                 >
-                    <option value="Laptop">Laptop</option>
-                    <option value="Aksesoris"> Aksesoris</option>
-                    <option value="Sparepart"> Sparepart / Hardware</option>
-                    <option value="PC Rakitan"> PC Rakitan</option>
+                    <option value="Software">Software</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Maintenance">Maintenance</option>
                 </select>
                 
                 {/* Input Deskripsi/Specs (YANG KEMARIN KITA TAMBAH) */}
@@ -392,14 +402,11 @@ export default function Dashboard() {
                     value={productForm.image_url}
                     onChange={(e) => setProductForm({...productForm, image_url: e.target.value})} />
 
-                {/* Input Stok */}
-                <input type="number" placeholder="Stok Awal" className="w-full bg-white/5 border border-white/10 p-3 rounded-lg text-white outline-none focus:border-blue-500" 
-                    value={productForm.stock || ''}
-                    onChange={(e) => setProductForm({...productForm, stock: parseInt(e.target.value)})} />
+                {/* Input Stok / Hardcoded Hidden */}
                 
                 {/* Tombol Simpan Dinamis */}
                 <button onClick={handleProductSubmit} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-500 transition flex items-center justify-center gap-2">
-                    <Save size={18} /> {editingProduct ? "Update Produk" : "Simpan Produk"}
+                    <Save size={18} /> {editingProduct ? "Update Layanan" : "Simpan Layanan"}
                 </button>
             </div>
         </div>
