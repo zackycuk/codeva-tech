@@ -24,7 +24,6 @@ export default function Navbar() {
   const navLinks = [
     { name: "Home", href: "/" },
     { name: "Katalog", href: "/shop" },
-    { name: "Laptop Finder", href: "/finder" },
     { name: "Cek Servis", href: "/track" }, // <--- INI BARU
     { name: "Service Info", href: "/#services" }, 
   ];

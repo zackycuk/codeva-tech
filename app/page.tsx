@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Laptop, Shield, Cpu, ChevronRight } from "lucide-react";
+import { ArrowRight, Laptop, Shield, Cpu, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import ProductShowcase from "@/components/ProductShowcase"; 
 import ContactSection from "@/components/ContactSection"; 
@@ -56,13 +56,13 @@ export default function Home() {
             </motion.h1>
             
             <motion.p variants={itemVariants} className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed font-light">
-              Service komputer profesional, rakit PC high-end, dan rekomendasi laptop berbasis data. 
+              Service komputer profesional dan rakit PC high-end dengan pemantauan progres perbaikan yang transparan. 
               Kami menggabungkan keahlian teknis dengan performa puncak.
             </motion.p>
             
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-5 justify-center items-center">
-                <Link href="/finder" className="group px-8 py-4 rounded-full bg-primary text-background font-bold text-lg hover:bg-primary-glow hover:scale-105 transition-all duration-300 shadow-[0_0_25px_rgba(0,220,130,0.3)] flex items-center gap-2">
-                    Cari Laptop Ideal 
+                <Link href="/track" className="group px-8 py-4 rounded-full bg-primary text-background font-bold text-lg hover:bg-primary-glow hover:scale-105 transition-all duration-300 shadow-[0_0_25px_rgba(0,220,130,0.3)] flex items-center gap-2">
+                    Cek Status Servis 
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link href="/dashboard" className="group px-8 py-4 rounded-full border border-white/20 text-white font-bold text-lg hover:bg-white/10 hover:border-white/40 transition-all duration-300 backdrop-blur-sm flex items-center gap-2">
@@ -104,7 +104,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <ServiceCard icon={Cpu} title="Service Hardware" desc="Spesialis perbaikan mati total, reballing chipset, ganti LCD, baterai, dan keyboard dengan sparepart original bergaransi." />
-                <ServiceCard icon={Laptop} title="Laptop Finder" desc="Bingung pilih laptop? Algoritma cerdas kami mencocokkan spesifikasi teknis dengan budget dan kebutuhan software Anda." />
+                <ServiceCard icon={Search} title="Tracking Servis Real-time" desc="Pantau progres perbaikan secara transparan. Anda bisa mengecek status perangkat Anda kapan saja dari mana saja." />
                 <ServiceCard icon={Shield} title="Garansi Premium" desc="Setiap unit dan jasa servis dilindungi garansi toko hingga 1 tahun. Dukungan after-sales prioritas via WhatsApp." />
             </div>
         </div>
