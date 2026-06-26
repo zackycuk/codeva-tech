@@ -59,8 +59,8 @@ export default function ContactSection() {
 
             {/* Tombol Sosmed */}
             <div className="flex gap-4 pt-4">
-              <SocialButton icon={Instagram} href="#" />
-              <SocialButton icon={Mail} href="#" />
+              <SocialButton icon={Instagram} href="https://www.instagram.com/codevatech/" />
+              <SocialButton icon={Mail} href="mailto:codevatech2025@gmail.com" />
               <SocialButton icon={MapPin} href="https://maps.google.com" />
             </div>
           </div>
